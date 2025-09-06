@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -11,6 +12,8 @@ import com.example.book.helper.ApiResponse;
 import com.example.book.helper.CustomMessage;
 import com.example.book.model.BookEntry;
 import com.example.book.service.BookEntryService;
+import com.example.book.util.JwtUtil;
+
 import org.springframework.web.bind.annotation.PostMapping;
 
 
@@ -21,9 +24,23 @@ public class BookEntryController {
     BookEntryService bookEntryService;
 
     @PostMapping
-    public ResponseEntity<ApiResponse<BookEntry>> saveBookEntry(@RequestBody BookEntry bookEntry) {
+    public ResponseEntity<ApiResponse<BookEntry>> saveBookEntry(@RequestBody BookEntry bookEntry, @RequestHeader("Authorization") String authHeader) {
         ApiResponse<BookEntry> apiResponse = new ApiResponse<>();
         try {
+            String token = authHeader.startsWith("Bearer ")
+            ? authHeader.substring(7).trim()
+            : authHeader.trim();            System.out.println("token---->"+token);
+                        JwtUtil jwtUtil = new JwtUtil();
+
+            String username = jwtUtil.extractUsername(token);
+            
+
+            if (!jwtUtil.validateToken(token, username)) {
+                apiResponse.setMessage("Invalid token");
+                apiResponse.setStatus(HttpStatus.UNAUTHORIZED.value());
+                return new ResponseEntity<>(apiResponse, HttpStatus.UNAUTHORIZED);
+            }
+
             BookEntry bookEntryData = bookEntryService.saveBookEntry(bookEntry);
 
             apiResponse.setMessage(CustomMessage.DataSavedSuccessFully);
